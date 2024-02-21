@@ -1,0 +1,202 @@
+---
+title: "RNAseq pipeline"
+author: "Łukasz Komorowski"
+format: 
+  html:
+    toc: true
+    page-layout: full
+editor_options: 
+  chunk_output_type: console
+---
+
+```{=html}
+<style>
+body {
+text-align: justify}
+</style>
+```
+```{r}
+#| eval: true
+#| include: false
+
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+This is an analysis pipeline of a bulk RNAseq of samples collected from acute lymphoblastic leukemia (ALL) patients' bone marrow (BM) and peripheral blood (PB) as a part of a undisclosed clinical trial. This analysis is performed on **real-life clinical triala data**, but as the data and results were not published yet, both count and clinical data were encrypted to some extent. Two of the variables in the encrypted clinical annotation file (Group and Event) were encrypted, as they are corresponding to relevant clinical features analyzed in the unpublished analysis.
+
+::: callout-note
+Part of this analysis is subsetting genes by their type (i.e. protein coding genes). The gene annotation process required the original names, so it can't be reproduced using encrypted data provided with this analysis. If you would like to see how the gene annotation and encryption was performed, please expand the collapsed section below to see the R code used.
+:::
+
+::: {.callout-tip title="Encryption process" collapse="true"}
+```{r}
+#| label: data_encryption
+#| include: true
+#| eval: false
+
+#load original count matrix from stored in RDS file
+raw.counts <- readRDS('raw_counts.rds')
+
+#prepare list of unique sythetic gene names
+encrypt.genes<- c()
+for(x in 1:nrow(raw.counts)){
+  curnam<-paste(sample(c(letters,LETTERS), 4, replace = T),collapse='')
+  while(curnam%in%encrypt.genes){
+    curnam2 <-paste(sample(c(letters,LETTERS), 4, replace = T),collapse='')
+    assign(x = "curnam", value = curnam2)
+  }
+  encrypt.genes <- append(encrypt.genes, curnam)
+}
+
+#Some of the gene names in raw counts file were duplicated, hence the duplicated original names were excluded
+encrypt.genes.dictionary <- data.frame(actual = raw.counts$gene_name, encrypted = encrypt.genes) %>%
+  filter(!duplicated(actual))
+
+#assign original gene names to rownames for easier subsetting/ordering
+rownames(encrypt.genes.dictionary) <- encrypt.genes.dictionary$actual
+
+#Original count file contained duplicated gene names. 
+#To reproduce this problem, synthetic gene names were also duplicated to correspond to original duplication pattern
+encrypt.genes.dictionary <- encrypt.genes.dictionary[raw.counts$gene_name,]
+
+#annotation of genes using biomartr package
+all.genes.annot <- biomartr::biomart( genes      = raw.counts$gene_name, # genes were retrieved using biomartr::getGenome()
+                                      mart       = "ENSEMBL_MART_ENSEMBL", # marts were selected with biomartr::getMarts()
+                                      dataset    = "hsapiens_gene_ensembl", # datasets were selected with biomartr::getDatasets()
+                                      attributes = c("gene_biotype"), # attributes were selected with biomartr::getAttributes()
+                                      filters    = "external_gene_name") # specify what ID type was stored in the fasta file retrieved with biomartr::getGenome()
+
+annot.encryption.dictionary <- encrypt.genes.dictionary[all.genes.annot$external_gene_name,]
+
+#check if all the actual names are the same and in the same order in the encryption data frame and target data frame
+all(annot.encryption.dictionary$actual == all.genes.annot$external_gene_name)
+
+all.genes.annot.encrypted <- all.genes.annot
+all.genes.annot.encrypted$external_gene_name <- annot.encryption.dictionary$encrypted
+
+#prepare list of synthetic sample IDs
+clin.data <- read.csv('clin_data.csv') %>% select(!1)
+
+anonymized.IDs <- c()
+for(x in 1:nrow(clin.data)){
+  anonymized.IDs<-append(anonymized.IDs, paste0('Sample',x))
+}
+
+samples.dictionary <- data.frame(actual = clin.data$Sample.ID, encrypted = anonymized.IDs)
+
+clin.data.encrypted <- clin.data %>% 
+  mutate(Sample.ID = samples.dictionary$encrypted)
+
+#encrypt gene names and sample names
+all(raw.counts$gene_name == encrypt.genes.dictionary$actual) #make sure gene names are in the same order
+raw.counts <- raw.counts[,c('gene_name',samples.dictionary$actual)] #order the count data to match the sample IDs order
+all(colnames(raw.counts)[2:ncol(raw.counts)] == samples.dictionary$actual) #make sure sample names are in the same order
+
+raw.counts.encrypted <- raw.counts[,c('gene_name',samples.dictionary$actual)]
+colnames(raw.counts.encrypted)[2:ncol(raw.counts.encrypted)] <-  samples.dictionary$encrypted
+raw.counts.encrypted$gene_name <- encrypt.genes.dictionary$encrypted
+
+#write CSV files used in for the following analysis
+write.csv(all.genes.annot.encrypted, 'all_genes_annot_encrypted.csv')
+write.csv(raw.counts.encrypted, 'raw_counts_encrypted.csv')
+write.csv(clin.data.encrypted, 'clin_data_encrypted.csv')
+```
+:::
+
+#Setup and data loading
+
+First, load libraries and set seed for the analysis, as some of the methods used in this pipeline rely on random numbers generation.
+
+```{r}
+#| label: setup libs and seed
+#| output: false
+library(dplyr)
+
+#set seed
+set.seed(123)
+```
+
+Now, let's load the files relevant to the analysis (clinical annotation for samples, raw count matrix and list of genes annotated by their names).
+
+```{r}
+#| label: data loading
+clin.data <- read.csv('clin_data_encrypted.csv') %>% select(!'X')
+raw.counts <- read.csv('raw_counts_encrypted.csv') %>% select(!'X')
+all.genes.annot <- read.csv('all_genes_annot_encrypted.csv') %>% select(!'X')
+```
+
+# Raw counts pre-processing
+
+First step of the analysis is checking the quality of raw counts. First, the genes are checked for any duplicated gene names:
+
+```{r}
+sum(duplicated(raw.counts$gene_name))
+```
+
+and whether there are any non-expressed genes (genes with raw counts \< 10 in less than 3 samples):
+
+```{r}
+sum(!rowSums(raw.counts > 10) >= 3)
+```
+
+::: callout-note
+The thresholds for counts and number of expressing samples were chosen arbitrarily, although they're a good starting point, as suggested in the [**example DESeq2 pipeline**](https://www.bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#pre-filtering). Those numbers might need to be modified for other analyses.
+:::
+
+Duplicated low/non expressed genes are not desired for downstream analyses of RNAseq, as they might introduce additional noise to the data and don't provide much additional information. Hence, duplicated and non expressed genes were filtered from the dataset.
+
+```{r}
+#| output: false
+
+#sort genes/rows from the ones with highest row-sum count
+raw.counts.clean <- raw.counts[order(raw.counts$gene_name, -(rowMeans(raw.counts[,2:length(colnames(raw.counts))])) ), ]
+
+#keep only the first occurence of a gene (first has the highest total number of counts)
+raw.counts.clean <- raw.counts.clean[!duplicated(raw.counts.clean$gene_name),]
+
+#replace rownames with gene_names
+rownames(raw.counts.clean)<-NULL
+raw.counts.clean <- raw.counts.clean %>% tibble::column_to_rownames('gene_name')
+
+#check for genes with relevant expression (counts > 10 in at least 3 samples, as recommended by DESeq2 pipeline for bulk RNAseq)
+row.filter = rowSums(raw.counts.clean > 10) >= 3
+
+#filter out non-expressed genes and non-numeric columns
+raw.counts.clean <- raw.counts.clean[row.filter,]
+```
+
+This leaves `r nrow(raw.counts.clean)` of expressed and unique genes, which were taken for the downstream analysis.
+
+The genes were then annotated with gene types using biomartr package, to enable subsetting and analysis of genes, i.e. selecting protein coding genes only. Annotation was performed using [**biomartr**](https://cran.r-project.org/web/packages/biomartr/index.html) package with ENSEMBL homo sapiens reference genome.
+
+::: callout-caution
+In case of the encrypted files, annotation had to be performed prior to encryption of gene names, as it requires original gene names. For code used for annotation, refer to **Encryption process** section at the beginning of this document.
+:::
+
+#Samples characteristics and subsetting
+
+Prior to any analysis, data has to be subsetted to minimize the noise in the data. As the low/non-expressed and duplicated genes were already filtered out, next step would be sample exclusion and / or subsetting. First, `clin.data` was slightly modified and cleaned for easier subsetting.
+
+```{r}
+#| eval: true
+clin.data<- clin.data %>%
+  mutate(
+    #clean some discrepancies in naming of ALL subtypes
+    ALL.Molecular.Subtype=case_when(
+      ALL.Molecular.Subtype=='None of above' ~ 'None of the above',
+      TRUE ~ ALL.Molecular.Subtype
+    ),
+    #add column stating whether sample is diagnostic or relapsed
+    Isolation.Time=case_when(
+      grepl('Primary',Sample.Type)~'Primary',
+      grepl('Recurrent',Sample.Type)~'Relapsed'
+    ),
+    #unify naming of ALL type
+    Cell.of.Origin = if_else(Cell.of.Origin == 'T Cell ALL', 'T-ALL', 'B-ALL')) %>% 
+    #mutate the Sample.Type column to have information about tissue type only
+    mutate(Sample.Type=case_when(
+      grepl('Marrow',Sample.Type)~'Bone marrow',
+      grepl('Peripheral',Sample.Type)~'Peripheral blood'
+  ))
+```
+
