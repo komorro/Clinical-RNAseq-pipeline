@@ -1,14 +1,3 @@
----
-title: "RNAseq pipeline"
-author: "Łukasz Komorowski"
-format: 
-  html:
-    toc: true
-    page-layout: full
-editor_options: 
-  chunk_output_type: console
----
-
 ```{=html}
 <style>
 body {

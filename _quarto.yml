@@ -1,0 +1,10 @@
+project:
+  type: website
+  output-dir: docs
+  title: "RNAseq pipeline"
+author: "Łukasz Komorowski"
+format: 
+  html:
+    toc: true
+    toc-location: left
+    page-layout: full
