@@ -1,7 +1,7 @@
 project:
   type: website
   output-dir: docs
-  title: "RNAseq pipeline"
+title: "Custom clinical trial RNAseq pipeline"
 author: "Łukasz Komorowski"
 format: 
   html:
