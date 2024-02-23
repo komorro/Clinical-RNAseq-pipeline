@@ -1160,7 +1160,7 @@ Figure&nbsp;2: Effects of VST on gene mean count to SD ratio
 </section>
 <section id="global-patterns-in-whole-dataset" class="level2">
 <h2 class="anchored" data-anchor-id="global-patterns-in-whole-dataset">Global patterns in whole dataset</h2>
-<p>Even though one can use biology domain knowledge to subset the samples accordingly, so the analysis makes biological sense, it might be a good practice to look at the whole dataset to see whether any clinical features drive variance in the dataset.</p>
+<p>Even though biology domain knowledge could be applied to subset the samples accordingly, so the analysis makes biological sense, it might be a good practice to look at the whole dataset to see whether any clinical features drive variance in the dataset.</p>
 <p>To visualize global patterns in the whole multi-dimensional expression data, PCA was performed first. Then, the UMAP was performed on all PCs that explain more than 1% of variance in the data (sometimes 70-80% of cumulative explained variance threshold for downstream analysis using PCs is used, although it’s more suitable for data where several top PCs explain significant portion of the whole variance present in the data).</p>
 <p>First, PCA was performed for the whole dataset. PCA results were centered for better visualization, but not scaled, as VST data shouldn’t be scaled further.</p>
 <div class="cell">
@@ -1180,9 +1180,14 @@ Figure&nbsp;2: Effects of VST on gene mean count to SD ratio
 <span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle=</span><span class="fu">paste</span>(npcs,<span class="st">' top PCs'</span>,<span class="at">sep=</span><span class="st">''</span>))<span class="sc">+</span></span>
 <span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylim</span>(<span class="dv">0</span>,plyr<span class="sc">::</span><span class="fu">round_any</span>(<span class="fu">max</span>(<span class="fu">summary</span>(current.pca)<span class="sc">$</span>importance[<span class="dv">2</span>,])<span class="sc">*</span><span class="dv">100</span>, <span class="dv">5</span>, <span class="at">f =</span> ceiling))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="RNAseq-pipeline_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+<div id="fig-scree_plot_whole" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-scree_plot_whole-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="RNAseq-pipeline_files/figure-html/fig-scree_plot_whole-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-scree_plot_whole-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Scree plot for PCA of whole dataset
+</figcaption>
 </figure>
 </div>
 </div>
@@ -1194,28 +1199,66 @@ Figure&nbsp;2: Effects of VST on gene mean count to SD ratio
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>             )<span class="sc">+</span></span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">paste0</span>(<span class="st">'PCA plot - centered, whole dataset'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="RNAseq-pipeline_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+<div id="fig-PCA12plot" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-PCA12plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="RNAseq-pipeline_files/figure-html/fig-PCA12plot-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-PCA12plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Plot of PC1 and PC2
+</figcaption>
 </figure>
 </div>
 </div>
 </div>
 <p>Clearly, PC1 and PC2 allow for identification of 3 separate clusters in the data. To see whether any particular clinical feature drives this separation, plot can be colored by feature.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fviz_pca_ind</span>(current.pca,</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>             <span class="at">geom =</span> <span class="fu">c</span>(<span class="st">'point'</span>),</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>             <span class="at">col.ind =</span> clin.data[,<span class="st">'Relapse'</span>], <span class="co">#color dots by feature from clin.file</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>             )<span class="sc">+</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">paste0</span>(<span class="st">'PCA plot - centered, whole dataset'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>colorVar <span class="ot">&lt;-</span> <span class="st">'Cell.of.Origin'</span> <span class="co">#define coloring variable / feature</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">fviz_pca_ind</span>(current.pca,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>             <span class="at">geom =</span> <span class="fu">c</span>(<span class="st">'point'</span>),</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>             <span class="at">col.ind =</span> clin.data[,colorVar], <span class="co">#color dots by feature from clin.file</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">mean.point=</span>F <span class="co">#remove centroids from the plot</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>             )<span class="sc">+</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">paste0</span>(<span class="st">'PCA plot - centered, whole dataset'</span>),</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">shape =</span> <span class="st">'ALL type'</span>,</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">'ALL type'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="RNAseq-pipeline_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+<div id="fig-PCA12plot_ALLtype" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-PCA12plot_ALLtype-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="RNAseq-pipeline_files/figure-html/fig-PCA12plot_ALLtype-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-PCA12plot_ALLtype-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Plot of PC1 and PC2, colored by ALL type
+</figcaption>
 </figure>
 </div>
 </div>
 </div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>colorVar <span class="ot">&lt;-</span> <span class="st">'Relapse'</span> <span class="co">#define coloring variable / feature</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">fviz_pca_ind</span>(current.pca,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>             <span class="at">geom =</span> <span class="fu">c</span>(<span class="st">'point'</span>),</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>             <span class="at">col.ind =</span> clin.data[,colorVar], <span class="co">#color dots by feature from clin.file</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">mean.point=</span>F <span class="co">#remove centroids from the plot</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>             )<span class="sc">+</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">paste0</span>(<span class="st">'PCA plot - centered, whole dataset'</span>),</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">shape =</span> colorVar,</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> colorVar)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="fig-PCA12plot_relapse" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-PCA12plot_relapse-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="RNAseq-pipeline_files/figure-html/fig-PCA12plot_relapse-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-PCA12plot_relapse-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: Plot of PC1 and PC2, colored by relapse occurence
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Clearly, the two main drivers of the 2 top PCs are type of ALL (PC1) and occurence of relapse to some extent (PC2).</p>
 </section>
 <section id="b-all---prognostic-marker-for-event-in-diagnostic-bone-marrow-samples" class="level2">
 <h2 class="anchored" data-anchor-id="b-all---prognostic-marker-for-event-in-diagnostic-bone-marrow-samples">B-ALL - prognostic marker for <code>Event</code> in diagnostic bone marrow samples</h2>

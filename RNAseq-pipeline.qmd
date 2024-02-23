@@ -331,6 +331,8 @@ current.pca <- vst.counts %>%
 
 Then, the scree plot of PCs, that each explain more than 1% of variance, can be plotted.
 ```{r}
+#| label: fig-scree_plot_whole
+#| fig-cap: "Scree plot for PCA of whole dataset"
 #get number of top PCs, each explaining more than 1% of variance
 npcs = sum(summary(current.pca)$importance[2,]>0.01)
 #plot scree plot of top 2 PCs
@@ -343,6 +345,8 @@ fviz_eig(current.pca,
 ```
 The top 2 PCs explain approx. 35% of variance present in the dataset which, given the heterogenity of the samples used for the analysis, is a decent value. To see whether there are any clear patterns emerging within just those 2 top PCs, PC1 vs PC2 can be plotted using `fviz_pca_ind` function from `factoextra` package.
 ```{r}
+#| label: fig-PCA12plot
+#| fig-cap: "Plot of PC1 and PC2"
 fviz_pca_ind(current.pca,
              geom = c('point')
              )+
@@ -350,12 +354,35 @@ fviz_pca_ind(current.pca,
 ```
 Clearly, PC1 and PC2 allow for identification of 3 separate clusters in the data. To see whether any particular clinical feature drives this separation, plot can be colored by feature. 
 ```{r}
+#| label: fig-PCA12plot_ALLtype
+#| fig-cap: "Plot of PC1 and PC2, colored by ALL type"
+
+colorVar <- 'Cell.of.Origin' #define coloring variable / feature
 fviz_pca_ind(current.pca,
              geom = c('point'),
-             col.ind = clin.data[,'Relapse'], #color dots by feature from clin.file
+             col.ind = clin.data[,colorVar], #color dots by feature from clin.file
+             mean.point=F #remove centroids from the plot
              )+
-  labs(title = paste0('PCA plot - centered, whole dataset'))
+  labs(title = paste0('PCA plot - centered, whole dataset'),
+       shape = 'ALL type',
+       color = 'ALL type')
 ```
+
+```{r}
+#| label: fig-PCA12plot_relapse
+#| fig-cap: "Plot of PC1 and PC2, colored by relapse occurence"
+
+colorVar <- 'Relapse' #define coloring variable / feature
+fviz_pca_ind(current.pca,
+             geom = c('point'),
+             col.ind = clin.data[,colorVar], #color dots by feature from clin.file
+             mean.point=F #remove centroids from the plot
+             )+
+  labs(title = paste0('PCA plot - centered, whole dataset'),
+       shape = colorVar,
+       color = colorVar)
+```
+Clearly, the two main drivers of the 2 top PCs are type of ALL (PC1) and occurence of relapse to some extent (PC2).
 
 ## B-ALL - prognostic marker for `Event` in diagnostic bone marrow samples
 
